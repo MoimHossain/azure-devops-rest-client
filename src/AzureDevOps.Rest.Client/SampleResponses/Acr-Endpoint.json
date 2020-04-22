@@ -1,0 +1,51 @@
+{
+  "data": {
+    "registrytype": "Others",
+    "subscriptionId": "",
+    "subscriptionName": "",
+    "registryId": "",
+    "spnObjectId": "",
+    "appObjectId": "",
+    "azureSpnRoleAssignmentId": "",
+    "azureSpnPermissions": ""
+  },
+  "id": "f172e8b8-c83c-419f-9c55-c65d3dbe63ea",
+  "name": "ACR-Connection",
+  "type": "dockerregistry",
+  "url": "https://hub.docker.com/",
+  "createdBy": {
+    "displayName": "Moim Hossain",
+    "url": "https://spsprodweu3.vssps.visualstudio.com/Ac96798a1-986a-4e34-9ef9-10bc3bd3a475/_apis/Identities/3bc39d57-cf58-6b42-bc51-26b15775164e",
+    "_links": {
+      "avatar": {
+        "href": "https://dev.azure.com/cloudoven/_apis/GraphProfile/MemberAvatars/aad.M2JjMzlkNTctY2Y1OC03YjQyLWJjNTEtMjZiMTU3NzUxNjRl"
+      }
+    },
+    "id": "3bc39d57-cf58-6b42-bc51-26b15775164e",
+    "uniqueName": "mohossa@microsoft.com",
+    "imageUrl": "https://dev.azure.com/cloudoven/_apis/GraphProfile/MemberAvatars/aad.M2JjMzlkNTctY2Y1OC03YjQyLWJjNTEtMjZiMTU3NzUxNjRl",
+    "descriptor": "aad.M2JjMzlkNTctY2Y1OC03YjQyLWJjNTEtMjZiMTU3NzUxNjRl"
+  },
+  "description": "ACR-Connection",
+  "authorization": {
+    "parameters": {
+      "registry": "https://acraksdemoweapr1.azurecr.io",
+      "username": "acraksdemoweapr1",
+      "email": "moim.hossain@microsoft.com"
+    },
+    "scheme": "UsernamePassword"
+  },
+  "isShared": false,
+  "isReady": true,
+  "owner": "Library",
+  "serviceEndpointProjectReferences": [
+    {
+      "projectReference": {
+        "id": "e688ce1c-4243-4cb4-8120-5e269502a25a",
+        "name": "Azure-K8S-Demo"
+      },
+      "name": "ACR-Connection",
+      "description": "ACR-Connection"
+    }
+  ]
+}
