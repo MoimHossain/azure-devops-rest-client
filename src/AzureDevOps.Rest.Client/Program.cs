@@ -29,7 +29,7 @@ namespace AzureDevOps.Rest.Client
             var connection = await covid.CreateKubernetesEndpointAsync(
                 new Guid("e688ce1c-4243-4cb4-8120-5e269502a25a"), 
                 projectName, 
-                "AKSCOnnection1112", 
+                "AKSCOnnection122v", 
                 "Some description",
                 clusterApiUrl,
                 cert, 
