@@ -20,9 +20,27 @@ namespace AzureDevOps.Rest.Client
             this.pat = pat;
         }
 
+        public async Task<string> CreateKubernetesResourceAsync(
+            string projectName, long environmentId, Guid endpointId,
+            string kubernetesNamespace, string kubernetesClusterName)
+        {
+            var link = await GetAzureDevOpsDefaultUri()
+                            .PostRestAsync(
+                            $"{projectName}/_apis/distributedtask/environments/{environmentId}/providers/kubernetes?api-version=5.0-preview.1",
+                            new
+                            {
+                                name = kubernetesNamespace,
+                                @namespace = kubernetesNamespace,
+                                clusterName = kubernetesClusterName,
+                                serviceEndpointId = endpointId
+                            },
+                            await GetBearerTokenAsync());
+            return link;
+        }
+
         public async Task<Endpoint> CreateKubernetesEndpointAsync(
-            Guid projectId, string projectName, 
-            string name, string description, 
+            Guid projectId, string projectName,
+            string endpointName, string endpointDescription,
             string clusterApiUri,
             string serviceAccountCertificate, string apiToken)
         {
@@ -46,17 +64,17 @@ namespace AzureDevOps.Rest.Client
                         authorizationType = "ServiceAccount"
                     },
                     isShared = false,
-                    name,
+                    name = endpointName,
                     owner = "library",
                     type = "kubernetes",
                     url = clusterApiUri,
-                    description = description,
+                    description = endpointDescription,
                     serviceEndpointProjectReferences = new List<Object>
                     {
                         new
                         {
-                            description = description,
-                            name =  name,
+                            description = endpointDescription,
+                            name =  endpointName,
                             projectReference = new
                             {
                                 id =  projectId,
@@ -66,24 +84,23 @@ namespace AzureDevOps.Rest.Client
                     }
                 },
                 await GetBearerTokenAsync());
-
             return ep;
         }
 
-        public async Task<string> CreateEnvironmentAsync(
-            string project, string name, string description)
+        public async Task<PipelineEnvironment> CreateEnvironmentAsync(
+            string project, string envName, string envDesc)
         {
-            var envs = await GetAzureDevOpsDefaultUri()
-                .PostRestAsync(
+            var env = await GetAzureDevOpsDefaultUri()
+                .PostRestAsync<PipelineEnvironment>(
                 $"{project}/_apis/distributedtask/environments?api-version=5.1-preview.1",
                 new
                 {
-                    name = name,
-                    description = description
+                    name = envName,
+                    description = envDesc
                 },
                 await GetBearerTokenAsync());
 
-            return envs;
+            return env;
         }
 
         public async Task<EndpointCollection> ListEndpointsAsync(string project)
@@ -112,7 +129,6 @@ namespace AzureDevOps.Rest.Client
 
             return projects;
         }
-
 
         public async Task<PipelineEnvironmentCollection> GetEnvAsync(string project)
         {
