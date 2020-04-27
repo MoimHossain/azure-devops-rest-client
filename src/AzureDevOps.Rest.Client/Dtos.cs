@@ -7,7 +7,7 @@ using System.Text;
 
 namespace AzureDevOps.Rest.Client
 {
-
+    #region Environments
     public partial class PipelineEnvironmentCollection
     {
         [JsonProperty("count")]
@@ -44,27 +44,6 @@ namespace AzureDevOps.Rest.Client
         public Project Project { get; set; }
     }
 
-    public partial class User
-    {
-        [JsonProperty("displayName")]
-        public string DisplayName { get; set; }
-
-        [JsonProperty("url")]
-        public Uri Url { get; set; }
-
-
-        [JsonProperty("id")]
-        public Guid Id { get; set; }
-
-        [JsonProperty("uniqueName")]
-        public string UniqueName { get; set; }
-
-        [JsonProperty("imageUrl")]
-        public Uri ImageUrl { get; set; }
-
-        [JsonProperty("descriptor")]
-        public string Descriptor { get; set; }
-    }
 
     public partial class Project
     {
@@ -72,9 +51,18 @@ namespace AzureDevOps.Rest.Client
         public Guid Id { get; set; }
 
         [JsonProperty("name")]
-        public object Name { get; set; }
+        public string Name { get; set; }
     }
 
+    public partial class ProjectCollection
+    {
+        [JsonProperty("count")]
+        public long Count { get; set; }
+
+        [JsonProperty("value")]
+        public Project[] Value { get; set; }
+    }
+    #endregion
 
     #region Endpoint
     public partial class EndpointCollection
@@ -280,5 +268,70 @@ namespace AzureDevOps.Rest.Client
     }
     #endregion
 
+    #region User and Groups
+
+    public partial class User
+    {
+        [JsonProperty("displayName")]
+        public string DisplayName { get; set; }
+
+        [JsonProperty("url")]
+        public Uri Url { get; set; }
+
+
+        [JsonProperty("id")]
+        public Guid Id { get; set; }
+
+        [JsonProperty("uniqueName")]
+        public string UniqueName { get; set; }
+
+        [JsonProperty("imageUrl")]
+        public Uri ImageUrl { get; set; }
+
+        [JsonProperty("descriptor")]
+        public string Descriptor { get; set; }
+    }
+    public partial class GroupCollection
+    {
+        [JsonProperty("count")]
+        public long Count { get; set; }
+
+        [JsonProperty("value")]
+        public Group[] Value { get; set; }
+    }
+
+    public partial class Group
+    {
+        [JsonProperty("subjectKind")]
+        public string SubjectKind { get; set; }
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
+        [JsonProperty("domain")]
+        public string Domain { get; set; }
+
+        [JsonProperty("principalName")]
+        public string PrincipalName { get; set; }
+
+        [JsonProperty("mailAddress")]
+        public object MailAddress { get; set; }
+
+
+        [JsonProperty("originId")]
+        public Guid OriginId { get; set; }
+
+        [JsonProperty("displayName")]
+        public string DisplayName { get; set; }
+
+        [JsonProperty("url")]
+        public Uri Url { get; set; }
+
+        [JsonProperty("descriptor")]
+        public string Descriptor { get; set; }
+
+        [JsonProperty("isCrossProject", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? IsCrossProject { get; set; }
+    }
+    #endregion
 }
 

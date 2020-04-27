@@ -9,15 +9,101 @@ using System.Threading.Tasks;
 
 namespace AzureDevOps.Rest.Client
 {
-    public class CovidClient
+    public class AdoClient
     {
         private string adoUrl;
         private string pat;
         private static HttpClient client = new HttpClient();
-        public CovidClient(string adoUrl, string pat)
+        public AdoClient(string adoUrl, string pat)
         {
             this.adoUrl = adoUrl;
             this.pat = pat;
+        }
+
+        public async Task<string> CreateAcrConnectionAsync(
+            string projectName, string acrName, string name, string description,
+            string subscriptionId, string subscriptionName, string resourceGroup,
+            string clientId, string secret, string tenantId)
+        {
+            var response = await GetAzureDevOpsDefaultUri()
+                .PostRestAsync(
+                $"{projectName}/_apis/serviceendpoint/endpoints?api-version=5.1-preview.2",
+                new
+                {
+                    name,
+                    description,
+                    type = "dockerregistry",
+                    url = $"https://{acrName}.azurecr.io",
+                    isShared = false,
+                    owner = "library",
+                    data = new
+                    {
+                        registryId = $"/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.ContainerRegistry/registries/{acrName}",
+                        registrytype = "ACR",
+                        subscriptionId,
+                        subscriptionName
+                    },
+                    authorization = new
+                    {
+                        scheme = "ServicePrincipal",
+                        parameters = new
+                        {
+                            loginServer = $"{acrName}.azurecr.io",
+                            servicePrincipalId = clientId,
+                            tenantId,
+                            serviceprincipalkey = secret
+                        }
+                    }
+                },
+                await GetBearerTokenAsync());
+            return response;
+        }
+
+        public async Task<string> CreateApprovalPolicyAsync(
+            string projectName, Guid groupId, long envId, 
+            string instruction = "Please approve the Deployment")
+        {
+            var response = await GetAzureDevOpsDefaultUri()
+                .PostRestAsync(
+                $"{projectName}/_apis/pipelines/checks/configurations?api-version=5.2-preview.1",
+                new
+                {
+                    timeout = 43200,
+                    type = new
+                    {                                   
+                        name = "Approval"
+                    },
+                    settings = new
+                    {
+                        executionOrder = 1,
+                        instructions = instruction,
+                        blockedApprovers = new List<object> { },
+                        minRequiredApprovers = 0,
+                        requesterCannotBeApprover = false,
+                        approvers = new List<object>
+                        {
+                            new 
+                            {
+			                    id = groupId
+                            }
+                        }
+                    },
+                    resource = new
+                    {
+                        type = "environment",
+                        id = envId.ToString()
+                    }
+                }, await GetBearerTokenAsync());
+            return response;
+        }
+
+        public async Task<IEnumerable<Group>> ListGroupsAsync()
+        {
+            var groups = await GetAzureDevOpsVsspUri()
+                .GetRestAsync<GroupCollection>(
+                $"_apis/graph/groups?api-version=5.1-preview.1",
+                await GetBearerTokenAsync());
+            return groups.Value;
         }
 
         public async Task<string> CreateKubernetesResourceAsync(
@@ -121,11 +207,11 @@ namespace AzureDevOps.Rest.Client
             return types;
         }
 
-        public async Task<string> GetProjectsAsync()
+        public async Task<ProjectCollection> GetProjectsAsync()
         {
             var path = "_apis/projects?stateFilter=All&api-version=1.0";
             var projects = await GetAzureDevOpsDefaultUri()
-                .GetRestJsonAsync(path, await GetBearerTokenAsync());
+                .GetRestAsync<ProjectCollection>(path, await GetBearerTokenAsync());
 
             return projects;
         }
@@ -142,6 +228,17 @@ namespace AzureDevOps.Rest.Client
 
 
         #region Helper methods
+
+        private string GetOrganizationName()
+        {
+            return GetAzureDevOpsDefaultUri().AbsolutePath.Replace("/", string.Empty);
+        }
+
+        private Uri GetAzureDevOpsVsspUri()
+        {
+            var organizationName = GetOrganizationName();
+            return new Uri($"https://vssps.dev.azure.com/{organizationName}/");
+        }
 
         private Uri GetAzureDevOpsDefaultUri()
         {

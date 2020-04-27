@@ -172,10 +172,10 @@ namespace AzureDevOps.Rest.Client
                 else
                 {
                     jsonString = JsonConvert.SerializeObject(payload,
-               new JsonSerializerSettings
-               {
-                   ContractResolver = new CamelCasePropertyNamesContractResolver()
-               });
+                   new JsonSerializerSettings
+                   {
+                       ContractResolver = new CamelCasePropertyNamesContractResolver()
+                   });
                 }
 
 
