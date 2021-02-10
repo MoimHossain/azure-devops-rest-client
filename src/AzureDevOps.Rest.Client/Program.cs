@@ -12,7 +12,18 @@ namespace AzureDevOps.Rest.Client
     {
         static void Main(string[] args)
         {
-            ExecuteAsync(args).Wait();
+            ExecuteTestsAsync(args).Wait();
+        }
+
+        private static async Task ExecuteTestsAsync(string[] args)
+        {
+            var adoUrl = Environment.GetEnvironmentVariable("AZDO_ORG_SERVICE_URL");
+            var pat = Environment.GetEnvironmentVariable("AZDO_PERSONAL_ACCESS_TOKEN");
+            var ado = new AdoClient(adoUrl, pat);
+
+            //var pools = await ado.ListPoolAsync();
+
+            var jobs =  await ado.ListJobRequestsAsync(9);
         }
 
         private static async Task ExecuteAsync(string [] args)

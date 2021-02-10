@@ -20,6 +20,38 @@ namespace AzureDevOps.Rest.Client
             this.pat = pat;
         }
 
+
+        public async Task<JobRequestCollection> ListJobRequestsAsync(long poolId)
+        {            
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<JobRequestCollection>(
+                $"_apis/distributedtask/pools/{poolId}/jobrequests?api-version=5.1-preview.1&",
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
+
+        public async Task<AgentPool> GetPoolAsync(long poolId)
+        {
+            var pool = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<AgentPool>(
+                $"_apis/distributedtask/pools/{poolId}?api-version=5.1",
+                await GetBearerTokenAsync());
+
+            return pool;
+        }
+
+        public async Task<AgentPoolCollection> ListPoolAsync()
+        {
+            var pools = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<AgentPoolCollection>(
+                $"_apis/distributedtask/pools?api-version=5.1",
+                await GetBearerTokenAsync());
+                        
+            return pools;
+        }
+
+
         public async Task<string> CreateAcrConnectionAsync(
             string projectName, string acrName, string name, string description,
             string subscriptionId, string subscriptionName, string resourceGroup,
