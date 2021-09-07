@@ -20,6 +20,81 @@ namespace AzureDevOps.Rest.Client
             this.pat = pat;
         }
 
+        
+
+
+        public async Task<MsVssBuildWebRunArtifactsDataProvider> GetConsumedArtifactInfoAsync(
+            string projectName, long runId)
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<RunArtifactsRootObject>(
+                $"{GetOrganizationName()}/{projectName}/_build/results?buildId={runId}&view=artifacts&pathAsName=false&__rt=fps&__ver=2",
+                new Action<HttpClient>(httpClient => 
+                {
+                    var credentials =
+                    Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes(
+                        string.Format("{0}:{1}", "", this.pat)));
+                    httpClient.DefaultRequestHeaders.Accept.Clear();
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+
+                    httpClient.DefaultRequestHeaders.TryAddWithoutValidation("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36 Edg/93.0.961.38");
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+                }));
+
+            return jrs.Fps.DataProviders.Data.MsVssBuildWebRunConsumedArtifactsDataProvider;
+        }
+
+        public async Task<string> GetPipelineRunAsync(
+            string projectName, long pipelineId, long runId)
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestJsonAsync(
+                $"{GetOrganizationName()}/{projectName}/_apis/pipelines/{pipelineId}/runs/{runId}?api-version=6.1-preview.1",
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
+
+
+        public async Task<PipelineRunCollection> ListPipelineRunesAsync(string projectName, long pipelineId)
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<PipelineRunCollection>(
+                $"{GetOrganizationName()}/{projectName}/_apis/pipelines/{pipelineId}/runs?api-version=6.1-preview.1",
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
+
+        public async Task<VstsPipelineCollection> ListPipelinesAsync(string projectName)
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<VstsPipelineCollection>(
+                $"{GetOrganizationName()}/{projectName}/_apis/pipelines?api-version=6.1-preview.1",
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
+
+        public async Task<TfsRunData> ListRunsAsync(string projectName)
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestAsync<RunRootObject>(
+                $"{GetOrganizationName()}/{projectName}/_build?definitionId=95&__rt=fps&__ver=2",
+                await GetBearerTokenAsync());
+
+            return jrs.Fps.DataProviders.Data;
+        }
+
+        public async Task<string> ListProjectsAsync()
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestJsonAsync(
+                $"{GetOrganizationName()}/_apis/projects?api-version=6.1-preview.4",
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
 
         public async Task<JobRequestCollection> ListJobRequestsAsync(long poolId)
         {            

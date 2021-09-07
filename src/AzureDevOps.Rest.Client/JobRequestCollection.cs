@@ -62,7 +62,7 @@
 
 
         [JsonProperty("data")]
-        public Data Data { get; set; }
+        public VstsRunData Data { get; set; }
 
         [JsonProperty("poolId")]
         public long PoolId { get; set; }

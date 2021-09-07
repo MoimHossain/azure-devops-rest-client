@@ -81,7 +81,7 @@ namespace AzureDevOps.Rest.Client
             return $"{Type} :: {Name} [{Id}]";
         }
         [JsonProperty("data")]
-        public Data Data { get; set; }
+        public VstsRunData Data { get; set; }
 
         [JsonProperty("id")]
         public Guid Id { get; set; }
@@ -192,7 +192,7 @@ namespace AzureDevOps.Rest.Client
         public Uri Href { get; set; }
     }
 
-    public partial class Data
+    public partial class VstsRunData
     {
         [JsonProperty("pipelinesSourceProvider", NullValueHandling = NullValueHandling.Ignore)]
         public string PipelinesSourceProvider { get; set; }

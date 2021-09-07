@@ -17,13 +17,22 @@ namespace AzureDevOps.Rest.Client
 
         private static async Task ExecuteTestsAsync(string[] args)
         {
-            var adoUrl = Environment.GetEnvironmentVariable("AZDO_ORG_SERVICE_URL");
-            var pat = Environment.GetEnvironmentVariable("AZDO_PERSONAL_ACCESS_TOKEN");
+            var adoUrl = Environment.GetEnvironmentVariable("AZDO_ORG_URI");
+            var pat = Environment.GetEnvironmentVariable("AZDO_TOKEN");
             var ado = new AdoClient(adoUrl, pat);
 
-            //var pools = await ado.ListPoolAsync();
 
-            var jobs =  await ado.ListJobRequestsAsync(9);
+            var pipelines = await ado.ListPipelinesAsync("CloudOven");
+            var targetPipeline = pipelines.Value.FirstOrDefault(p => p.Name.Equals("Consumer"));
+            var sourcePipeline = pipelines.Value.FirstOrDefault(p => p.Name.Equals("test-repo"));
+
+            var runs = await ado.ListPipelineRunesAsync("CloudOven", targetPipeline.Id);
+            var latestRun = runs.Value.FirstOrDefault();
+
+            var run = await ado.GetPipelineRunAsync("CloudOven", targetPipeline.Id, latestRun.Id);
+            var consumedArtifacts = await ado.GetConsumedArtifactInfoAsync("CloudOven", latestRun.Id);
+
+            // var jobs =  await ado.ListJobRequestsAsync(9);
         }
 
         private static async Task ExecuteAsync(string [] args)
