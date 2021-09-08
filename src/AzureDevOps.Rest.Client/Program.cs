@@ -23,10 +23,17 @@ namespace AzureDevOps.Rest.Client
 
 
             var pipelines = await ado.ListPipelinesAsync("CloudOven");
+
+
+            var test = await ado.GetBuildChangesAsync("CloudOven", 1412);
+
             var targetPipeline = pipelines.Value.FirstOrDefault(p => p.Name.Equals("Consumer"));            
 
             var runs = await ado.ListPipelineRunesAsync("CloudOven", targetPipeline.Id);
             var latestRun = runs.Value.FirstOrDefault();
+            // You are already here upuntil now
+
+            // ??
             var consumedArtifacts = await ado.GetConsumedArtifactInfoAsync("CloudOven", latestRun.Id);
 
             // var jobs =  await ado.ListJobRequestsAsync(9);

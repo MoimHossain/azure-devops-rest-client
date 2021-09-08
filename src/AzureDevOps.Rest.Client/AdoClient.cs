@@ -20,7 +20,18 @@ namespace AzureDevOps.Rest.Client
             this.pat = pat;
         }
 
+
         
+        public async Task<string> GetBuildChangesAsync(
+            string projectName, long buildId)
+        {
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .GetRestJsonAsync(
+                $"{GetOrganizationName()}/{projectName}/_apis/build/builds/{buildId}/changes?api-version=6.1-preview.2",
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
 
 
         public async Task<MsVssBuildWebRunArtifactsDataProvider> GetConsumedArtifactInfoAsync(
