@@ -1,5 +1,7 @@
 ﻿
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -19,9 +21,44 @@ namespace AzureDevOps.Rest.Client
             this.adoUrl = adoUrl;
             this.pat = pat;
         }
+        public async Task<string> UpdateWorkItemColumnAsync(
+            string projectName, long workItemId)
+        {
+            var payload = JsonConvert.SerializeObject(new List<object> 
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/fields/System.State",
+                    value = "Approved"
+                },
+                new
+                {
+                    op = "replace",
+                    path = "/fields/WEF_F60E35084CDE4EE5BD49F452444EDD2B_Kanban.Column",
+                    value = "Impediment"
+                },
+                new
+                {
+                    op = "replace",
+                    path = "/fields/WEF_94E7A65232DB43F98411C1BE75AC4DDD_Kanban.Column",
+                    value = "Impediment"
+                }            },
+            new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            });
+
+            var jrs = await GetAzureDevOpsDefaultUri()
+                .PatchRestAsync(
+                $"{GetOrganizationName()}/{projectName}/_apis/wit/workitems/{workItemId}?api-version=6.1-preview.3&bypassRules=true",
+                payload,
+                await GetBearerTokenAsync());
+
+            return jrs;
+        }
 
 
-        
         public async Task<string> GetBuildChangesAsync(
             string projectName, long buildId)
         {
@@ -323,6 +360,36 @@ namespace AzureDevOps.Rest.Client
                 .GetRestJsonAsync(path, await GetBearerTokenAsync());
 
             return types;
+        }
+
+        public async Task<string> CreateProjectAsync(string projectName)
+        {
+            var path = "_apis/projects?api-version=6.1-preview.4";
+            var payload = new 
+            {
+                name = projectName,
+                description = projectName,
+                capabilities = new 
+                {
+                    versioncontrol = new 
+                    {
+                        sourceControlType = "Git"
+                    },
+                    processTemplate = new 
+                    {
+                        templateTypeId = "6b724908-ef14-45cf-84f8-768b5384da45"
+                    }
+                }
+            };
+            return await GetAzureDevOpsDefaultUri()
+                .PostRestAsync(path, payload, await GetBearerTokenAsync());
+        }
+
+        public async Task<string> DeleteProjectAsync(string projectName)
+        {
+            var path = $"_apis/projects/{projectName}?api-version=6.1-preview.4";
+            return await GetAzureDevOpsDefaultUri()
+                .DeleteRestAsync(path, await GetBearerTokenAsync());
         }
 
         public async Task<ProjectCollection> GetProjectsAsync()

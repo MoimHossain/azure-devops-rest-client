@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AzureDevOps.Rest.Client": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

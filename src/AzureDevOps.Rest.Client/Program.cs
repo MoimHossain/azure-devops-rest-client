@@ -5,156 +5,56 @@ using System;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 
 namespace AzureDevOps.Rest.Client
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            ExecuteTestsAsync(args).Wait();
+            var rootCommand = new RootCommand(description: "REST Client for Azure DevOps.");            
+            
+            rootCommand.AddOption(new Option(
+              aliases: new string[] { "--uri", "-u" },
+              description: "The Organization URL.", argumentType: typeof(string)));
+            rootCommand.AddOption(new Option(
+              aliases: new string[] { "--credentials", "-c" },
+              description: "The PAT.", argumentType: typeof(string)));
+            rootCommand.AddOption(new Option(
+                aliases: new string[] { "--project", "-p" }, 
+                description: "The name or ID of project.", argumentType: typeof(string)));
+            rootCommand.AddOption(new Option(
+                aliases: new string[] { "--verb", "-v" },
+                description: "verb.", argumentType: typeof(ActionVerbs)));
+  
+            rootCommand.Handler =
+              CommandHandler.Create<string, string, string, ActionVerbs>(RunAsync);
+            await rootCommand.InvokeAsync(args);
         }
 
-        private static async Task ExecuteTestsAsync(string[] args)
-        {
-            var adoUrl = Environment.GetEnvironmentVariable("AZDO_ORG_URI");
-            var pat = Environment.GetEnvironmentVariable("AZDO_TOKEN");
-            var ado = new AdoClient(adoUrl, pat);
+        private static async Task RunAsync(
+            string uri, 
+            string credentials, 
+            string project, 
+            ActionVerbs verb)
+        {            
+            var ado = new AdoClient(uri, credentials);
 
-
-            var pipelines = await ado.ListPipelinesAsync("CloudOven");
-
-
-            var test = await ado.GetBuildChangesAsync("CloudOven", 1412);
-
-            var targetPipeline = pipelines.Value.FirstOrDefault(p => p.Name.Equals("Consumer"));            
-
-            var runs = await ado.ListPipelineRunesAsync("CloudOven", targetPipeline.Id);
-            var latestRun = runs.Value.FirstOrDefault();
-            // You are already here upuntil now
-
-            // ??
-            var consumedArtifacts = await ado.GetConsumedArtifactInfoAsync("CloudOven", latestRun.Id);
-
-            // var jobs =  await ado.ListJobRequestsAsync(9);
-        }
-
-        private static async Task ExecuteAsync(string [] args)
-        {
-            var clusterApiUrl = Environment.GetEnvironmentVariable("AKS_URI");
-            var adoUrl = Environment.GetEnvironmentVariable("AZDO_ORG_SERVICE_URL");
-            var pat = Environment.GetEnvironmentVariable("AZDO_PERSONAL_ACCESS_TOKEN");
-            var adoClient = new AdoClient(adoUrl, pat);
-            var groups = await adoClient.ListGroupsAsync();
-
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile();
-            var client = new Kubernetes(config);
-
-            var accounts = await client
-                .ListServiceAccountForAllNamespacesAsync(labelSelector: "purpose=ado-automation");
-
-            foreach (var account in accounts.Items)
+            if (verb == ActionVerbs.Create)
             {
-                var project = await GetProjectAsync(account.Metadata.Labels["project"], adoClient);
-                var secretName = account.Secrets[0].Name;
-                var secret = await client
-                    .ReadNamespacedSecretAsync(secretName, account.Metadata.NamespaceProperty);
-
-                var endpoint = await adoClient.CreateKubernetesEndpointAsync(
-                    project.Id,
-                    project.Name,
-                    $"Kubernetes-Cluster-Endpoint-{account.Metadata.NamespaceProperty}",
-                    $"Service endpoint to the namespace {account.Metadata.NamespaceProperty}",
-                    clusterApiUrl,
-                    Convert.ToBase64String(secret.Data["ca.crt"]),
-                    Convert.ToBase64String(secret.Data["token"]));
-
-                var environment = await adoClient.CreateEnvironmentAsync(project.Name,
-                    $"Kubernetes-Environment-{account.Metadata.NamespaceProperty}",
-                    $"Environment scoped to the namespace {account.Metadata.NamespaceProperty}");
-
-                await adoClient.CreateKubernetesResourceAsync(project.Name, 
-                    environment.Id, endpoint.Id,
-                    account.Metadata.NamespaceProperty,
-                    account.Metadata.ClusterName);
-
-                var group = groups.FirstOrDefault(g => g.DisplayName
-                    .Equals($"[{project.Name}]\\Release Administrators", StringComparison.OrdinalIgnoreCase));
-                await adoClient.CreateApprovalPolicyAsync(project.Name, group.OriginId, environment.Id);
-
-                await adoClient.CreateAcrConnectionAsync(project.Name, 
-                    Environment.GetEnvironmentVariable("ACRName"), 
-                    $"ACR-Connection", "The connection to the ACR",
-                    Environment.GetEnvironmentVariable("SubId"),
-                    Environment.GetEnvironmentVariable("SubName"),
-                    Environment.GetEnvironmentVariable("ResourceGroup"),
-                    Environment.GetEnvironmentVariable("ClientId"), 
-                    Environment.GetEnvironmentVariable("Secret"),
-                    Environment.GetEnvironmentVariable("TenantId"));
+                Console.WriteLine(await ado.CreateProjectAsync(project));
             }
-        }
-
-        private async static Task<Project> GetProjectAsync(string projectName, AdoClient client)
-        {
-            var projects = await client.GetProjectsAsync();
-
-            return projects.Value.FirstOrDefault(p => p.Name.Equals(projectName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static async Task RunAsync()
-        {
-            var adoUrl = Environment.GetEnvironmentVariable("AZDO_ORG_SERVICE_URL");
-            var pat = Environment.GetEnvironmentVariable("AZDO_PERSONAL_ACCESS_TOKEN");
-            var projectName = "Azure-K8S-Demo"; // id: "e688ce1c-4243-4cb4-8120-5e269502a25a"
-
-            var ado = new AdoClient(adoUrl, pat);
-
-
-
-
-            var clusterApiUrl = "https://aks-we-dem-rgp-aks-we-demo--c5b22a-bbe88c04.hcp.westeurope.azmk8s.io";
-            var cert = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUV5akNDQXJLZ0F3SUJBZ0lSQUw3SmFGYVNyTE11ZElqd29kU1poYTh3RFFZSktvWklodmNOQVFFTEJRQXcKRFRFTE1Ba0dBMVVFQXhNQ1kyRXdJQmNOTWpBd05ESXpNRFl3TVRNM1doZ1BNakExTURBME1qTXdOakV4TXpkYQpNQTB4Q3pBSkJnTlZCQU1UQW1OaE1JSUNJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBZzhBTUlJQ0NnS0NBZ0VBCnZkcVFQTVdtWU9nMFBvaW5qdnBXemh6a3c1eHJCc0xOeVVycXhjQ0hUQ0lQQlc2T0FKYTQzdmZIUHZ3azIrL0MKcTU5REtHeXhmQldxTnluclM3Mm1vOElmYjRDN2pKTDl5NmJqMDh5Sjk2MmVZUno5MXEvbVoyYnpNSUdqeXZndgpuUkE3S1hHVlpGSW1hRU12RXh5TFhJT1RZQXRkUFBJcC9OU1VVdFVhWExCd3Fra0YxWkd6WmMwaFV2UmFOV0ZlCnpXcS9zemUrVmMrU1RNSFNoWCtTcTVCNVpQbGVGVjJHQ3o4UVNHU0YrY2hSRHR6UVk0WnAzdS9Odm1HU2JJaDYKSVBtNU84dnNIYkdMN2hPd2owRWN0VXI5TVRCTEpEaWdMVXRSbUZ6bksrT1RnTFhrQlJMcUhub2VCOC95YWt1Nwp5SmZBYmZhZWhibzZ2eWY4T1NxZU4wUXg0akM0L01ITTIwMExZL2k1a2Vnb24vQ1BuemhaeE9EZVBuWVRhZEZyCnJJUTdXYmhBcmlPeHNrNGJrOFJUUjhhUVZ3MmhwNDM0Ym1PWmRMUUE5elpFVThoSkxLQXpNYWxubEM4bGpNcEEKczROUFluN3RDZk1XNU1WanhYcGltb2E2OVBHVjZsUFdYbHdZMjAvQVROYVZscUxPY2VNWG03U3p6S2xWYy9ncgpkdms4UlFWVmtlbzJpMFZsOWVUWnNzUkljdHZrUlBsVGJhNXBxSHlTQzNaOFppQ2tveWRKOUJiaGIzTnZ6TWd6CnRZVGVBNnJqTWZ2SjArLzVtbmZhWk4rNDVOT3Z4bmFCbmM2NE5xN3RDMXJpemJ0b0pWZGM2YXJCdDZQNFU4VzgKVUJjbWhESVUyeXhKelJMQVFhNG5iYk00V1A5M1V0enRpaTMzb0RabzhZVUNBd0VBQWFNak1DRXdEZ1lEVlIwUApBUUgvQkFRREFnS2tNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSWh2Y05BUUVMQlFBRGdnSUJBSENrCjJrOHQ0dUdLRzF0REJCZHNBbWltaGxxVW16T2N2bjByWmZZZm9GWmt2MHhGbEQxSExzZmE4V0dlamFZK3d0bkwKVStGTXJLZTgwN1RXWS9NVmZRcjlkQnVWcGRlQ1ZROWgyMG80RDZOUlZJcTRtVEE1Mjh0azFTZnJBTHRadjlmTgpWKzVJTkttRFBCVmw1ZHdJSUU0Wk00U2VXSW5YQmdRTGpSSUEvUjdxS1c2K2RtUGpCVWFWZW9nQnl1akJSWHdUClRjM2ZlK2RLNlhlRTVjWHFIREtaeGV2ZkhEdzA1cThIa25KMGpLVzlJWGpTd215MjFnUjNwVzZPTHk1Z1UvcHYKZkVFb3ZHVEx4aWtteGFIajFTcjdFLzZ0YmhDVk9FSmc3M01QdmpYRmlDbmtONUxtK1VRS2N4UFZzdDJGM0RkaQpqN212L25mcEx2aGduMGl3MzFhaGpzMlBxanRoTnA0a1ZPTWM5L1p4aXpEL2tkN2hPclhnMm9JSGdEVmtTcExBCmNlUG5uS0xIMGJZWHJLVktOOVBrdWVaNUUzOHIrazl4bTFYMHpvSWpXdGlPTzNMVUswV3Z5MmlPYUFXM0UxMGkKUDRsTm1EZ2ppYVlMTHBoV0wwZXZMWkswR2o3TjdyeG5ieDNWY3liTExFL2xmNFBFSGVieWZHcDBYZ1UwUkZxdQoxQWNzMWY1Zkk1d3AyN1laNy9PajBWS2w1MmVHR0xQemxQRUQrcXQ1SzFMdWJYSnRuVG5BNnY3a3E5alM0Kys2CmZsalZGZUgzNk80UWlQTmN0aG90UjAxL1lqbXEvN3ZoVmpaS0hjaUFkenc1WjBmcURxZzA5ZFNuVFZ3U2RNV3EKQTNQQ3BiZWVRYm9adHhNNTZOdlRXSlc4RkRBNThIY3VtKzZXVG1UaAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==";
-            var token = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklpSjkuZXlKcGMzTWlPaUpyZFdKbGNtNWxkR1Z6TDNObGNuWnBZMlZoWTJOdmRXNTBJaXdpYTNWaVpYSnVaWFJsY3k1cGJ5OXpaWEoyYVdObFlXTmpiM1Z1ZEM5dVlXMWxjM0JoWTJVaU9pSmtaV1poZFd4MElpd2lhM1ZpWlhKdVpYUmxjeTVwYnk5elpYSjJhV05sWVdOamIzVnVkQzl6WldOeVpYUXVibUZ0WlNJNkltRjZkWEpsWkdWMmIzQnpZMlF0ZEc5clpXNHRlR053ZG1zaUxDSnJkV0psY201bGRHVnpMbWx2TDNObGNuWnBZMlZoWTJOdmRXNTBMM05sY25acFkyVXRZV05qYjNWdWRDNXVZVzFsSWpvaVlYcDFjbVZrWlhadmNITmpaQ0lzSW10MVltVnlibVYwWlhNdWFXOHZjMlZ5ZG1salpXRmpZMjkxYm5RdmMyVnlkbWxqWlMxaFkyTnZkVzUwTG5WcFpDSTZJalU1WVRnd016Z3hMV00yWkRNdE5HUTRPUzA1TXpBekxUTmtORFF6WVRGbE0ySTBZaUlzSW5OMVlpSTZJbk41YzNSbGJUcHpaWEoyYVdObFlXTmpiM1Z1ZERwa1pXWmhkV3gwT21GNmRYSmxaR1YyYjNCelkyUWlmUS5iWTRWQm8ya0NTeDgtWFZEcjVfRGlIcmVDMHE1RTFSSG9JcUJyd19YR1BYVy1wTFphd1N5MTY3YXpZV3Rac3pyNl93dmhTNjZHdExyZkNRREtrRWN4VmVBaVQ4cDRFREFZcGNMeWl4NGdxQXpWWl9vc29oQTk5RzJ1a2hLZTk0clZESnNOeGduLTNOdjEyaUV2VXZudm5EUjlWTWFzUWVLV3VmajF0NU9adWRzUmE2V1pSUC0yeG8tZ3hVN0ZmNzZVZlYtdFBhYkpraTg2M3ZudEt0dGdDWl9Ta285QlZlVTR4WkZRQXRtQWRSX2gwZW1malRkYThfYy1XMlRDVFpyRTRuT1Z5d0ctRkNwdDI4WmdpX1lkVkFvQ1FhajJubzB5c2k1SU8yWXRWNVA2Qk10bE5zTUlRd1pSTk5NQ2dMUTNmemQzNHNKcENVNFlmSkhsQnZqUFhrVHp6djhkNUhUVGw0WUszY0g4MC1tSWN5eHZoWFF2eXRYd3M0SWVKdVFUWWEtVnhfRmI1OXFNQmVkTHF5OXpzX1UwWjliM3NMMXMwVy03UEEwV1VBSHJxOGxJMGRJVThrV1ZYUDBJQzZ5S1R3NFZPVVlGejB4RzJVNjBLQ19fNzNTTTk5Q0I3R2xiWUw4bGxXSzlyT1YtNDhlNGtiYm1GMkFJR0t3T0dUamhsMXNmSXJMUlkyZE9SaFlORTlSczRmSWtVQnE5RmxIX3c1ZDVENFdFMGlMQmZHcWcwVnlFZ2pGVjRDcTFYdWJfcW1uUUJfeFlPeGNwUnJmeXdzRmQ0YnI1LUhYTHg1Yndaa2phVVFfOWwxXzNPSlJHbGh3dHF5QnJJZjY4LVVyQ3JxSTRxekFRcmtQOWJiVUdYNTlwekF4dFUwUkh1TW5NM2JybTJWZnhVSQ==";
-
-
-            await ado.CreateAcrConnectionAsync(projectName, "acraksdemoweapr1", "REGISTRY-COnn", "GAGA",
-                "c5b22afb-96db-4354-99a4-5f808d5221c6", "Visual Studio Enterprise Subscription",
-                "rgp-aks-we-demo-apr1", "13c5fea4-1453-4073-97bd-f7c68f7998df", "s.0QKq-CLb-@WhT0GnkBZIdRF2i6sYQ+",
-                "cac2cc32-7de9-4f3d-8d79-76375427b620");
-
-
-            //var groups = await ado.ListGroupsAsync();
-
-            //var group = groups.FirstOrDefault(g => g.DisplayName
-            //    .Equals("Kubernetes-Admins", StringComparison.OrdinalIgnoreCase));
-
-
-            //await ado.CreateApprovalPolicyAsync(projectName, group.OriginId, 15);
-
-            //var endpoint = await ado.CreateKubernetesEndpointAsync(
-            //    new Guid("e688ce1c-4243-4cb4-8120-5e269502a25a"),
-            //    projectName,
-            //    "Kubernetes-Cluster-Environment-Connection",
-            //    "Some description",
-            //    clusterApiUrl,
-            //    cert,
-            //    token);
-
-            //var environment = await ado
-            //    .CreateEnvironmentAsync(projectName, 
-            //    "Kubernetes-Cluster-Environment", "Kubernetes-Cluster-Environment");
-
-
-            //var response = await ado
-            //    .CreateKubernetesResourceAsync(
-            //    projectName, environment.Id, endpoint.Id, 
-            //    "default", "aks-we-demo-apr1");
-
-            //var endpoints = await ado.ListEndpointsAsync(projectName);
-            //var epTypes = await ado.GetEndpointTypesAsync();
-            //var projects = await ado.GetProjectsAsync();
-
-            await ado.GetEnvAsync(projectName);
+            else if(verb == ActionVerbs.Delete)
+            {
+                var all = await ado.GetProjectsAsync();
+                var dp = all.Value.FirstOrDefault(p => p.Name.Equals(project, StringComparison.InvariantCultureIgnoreCase));
+                if(dp != null )
+                {
+                    Console.WriteLine(await ado.DeleteProjectAsync(dp.Id.ToString()));
+                }
+            }
         }
     }
 }

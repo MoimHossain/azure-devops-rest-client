@@ -64,7 +64,7 @@ namespace AzureDevOps.Rest.Client
             return default(TPayload);
         }
 
-        public static async Task<bool> DeleteRestAsync(
+        public static async Task<string> DeleteRestAsync(
             this Uri baseAddress, string requestPath, Action<HttpClient> configureClient)
         {
             using (var client = new HttpClient())
@@ -74,7 +74,7 @@ namespace AzureDevOps.Rest.Client
 
                 var response = await client.DeleteAsync(requestPath);
 
-                return response.IsSuccessStatusCode;
+                return await response.Content.ReadAsStringAsync();
             }
         }
 
@@ -145,11 +145,12 @@ namespace AzureDevOps.Rest.Client
                 client.BaseAddress = baseAddress;
                 configureClient(client);
 
-                var jsonContent = new StringContent(payload, Encoding.UTF8, "application/json");
+                var jsonContent = new StringContent(payload, Encoding.UTF8, "application/json-patch+json");
                 var response = await PatchAsync(client, requestPath, jsonContent);
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadAsStringAsync();
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    return responseContent;
                 }
             }
 
@@ -181,13 +182,8 @@ namespace AzureDevOps.Rest.Client
 
                 var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(requestPath, jsonContent);
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsStringAsync();
-                }
+                return await response.Content.ReadAsStringAsync();
             }
-
-            return string.Empty;
         }
 
         public static async Task<TResponseType> PostRestAsync<TResponseType>(
