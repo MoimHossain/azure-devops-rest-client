@@ -19,4 +19,4 @@ steps:
 - script: |
     docker run --rm moimhossain/pat-test:v1 -u "$(ORGURI)" -c "$(PAT)" -p "test-project" -v "Delete"
     sleep 2
-  displayName: 'Create project'
+  displayName: 'Delete project'
