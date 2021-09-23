@@ -6,6 +6,11 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
+- task: Docker@2
+  inputs:
+    containerRegistry: 'Docker-Hub-moimhossain'
+    command: 'login'
+
 - script: |
     docker run --rm moimhossain/pat-test:v1 -u "$(ORGURI)" -c "$(PAT)" -p "test-project" -v "Create"
     sleep 2
